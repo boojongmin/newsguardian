@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>언론감시 기레기 기사리스트는 DB</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <h2>언론감시 기레기 기사리스트는 DB</h2>
+  <!--<form class="form-inline">-->
+    <div class="form-group">
+      <label for="날짜">날짜</label>
+      <input type="text" class="form-control" id="formNewsDate" placeholder="20170101">
+    </div>
+    <div class="form-group">
+      <label for="매체">매체</label>
+      <input type="text" class="form-control" id="formNewsPlatform" placeholder="매체명">
+    </div>
+    <div class="form-group">
+      <label for="기자명">기자명</label>
+      <input type="text" class="form-control" id="formNewsName" placeholder="기자명">
+    </div>
+    <div class="form-group">
+      <label for="이메일">이메일</label>
+      <input type="text" class="form-control" id="formNewsEmail" placeholder="이메일">
+    </div>
+    <div class="form-group">
+      <label for="문제점">문제점</label>
+      <input type="text" class="form-control" id="formNewsReason" placeholder="이유">
+    </div>
+    <div class="form-group">
+      <label for="링크">링크</label>
+      <input type="text" class="form-control" id="formNewsLink" placeholder="링크">
+    </div>
+    <button id="newsSubmitBtn" type="button" class="btn btn-primary">등록</button>
+  <!--</form>-->
+  <div style="padding:10px;"></div>
+  <div class="row">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>날짜</th>
+          <th>매체</th>
+          <th>기자명</th>
+          <th>이메일</th>
+          <th>문제점</th>
+          <th>링크</th>
+        </tr>
+      </thead>
+      <tbody id="listTableBody">
+        <tr>
+          <td colspan="6" class="text-center"><h2>로그인해주세요</h2><button id="loginBtn" class="btn btn-primary">로그인</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-messaging.js"></script>
+<script>
+
+var auth, database, userInfo, selectedKey;
+
+(function() {
+  var config = {
+    apiKey: "AIzaSyC9oqvvU10EJbcKzHzeKkhWBzCb9RyEq8k",
+    authDomain: "news-archive-9fff8.firebaseapp.com",
+    databaseURL: "https://news-archive-9fff8.firebaseio.com",
+    projectId: "news-archive-9fff8",
+    storageBucket: "news-archive-9fff8.appspot.com",
+    messagingSenderId: "551035115513"
+  };
+  firebase.initializeApp(config);
+  database = firebase.database();
+  listRef = database.ref("newsarchive/list");
+  get_newsarchive_list();
+
+  function init_auth() {
+    auth = firebase.auth();
+    var authProvider = new firebase.auth.GoogleAuthProvider();
+    auth.onAuthStateChanged(function(user) {
+      if(!!user) {
+        userInfo = user;
+        // console.error(user);
+        insertListData();
+      } else {
+        auth.signInWithPopup(authProvider);
+      }
+    })
+  }
+  
+  function get_newsarchive_list() {
+    // listRef.on('child_changed', function(snapshot) {
+    listRef.once('value', function(snapshot) {
+      list = snapshot.val();
+      var listHtml = '';
+      for(var i in list) {
+        var data = list[i];
+        listHtml += '<tr>';
+        listHtml += '<td>' + data.date + '</td>';
+        listHtml += '<td>' + data.platform + '</td>';
+        listHtml += '<td>' + data.name + '</td>';
+        listHtml += '<td>' + data.email + '</td>';
+        listHtml += '<td>' + data.reason + '</td>';
+        listHtml += '<td>' + data.link + '</td>';
+        listHtml += '</tr>';
+      }
+      $('#listTableBody').html(listHtml);
+    });
+  }
+
+  $('#loginBtn').on('click', function() {
+      init_auth();
+  })
+
+
+  // function checkAuth() {
+  //   if(!!!auth) {
+  //     if(confirm('글 등록은 로그인이 필요합니다.')) {
+  //       init_auth();
+  //     }
+  //     return ;
+  //   } else {
+
+  //   }
+
+  // }
+
+
+  $('#newsSubmitBtn').on('click', function(){
+    if(!!!userInfo ) {
+      if(confirm('글 등록은 로그인이 필요합니다.')) {
+        init_auth();
+      }
+    } else {
+      insertListData();
+    }
+
+
+  });
+
+  function insertListData() {
+    var formNewsDate  = $('#formNewsDate').val();
+    var formNewsPlatform = $('#formNewsPlatform').val();
+    var formNewsName = $('#formNewsName').val();
+    var formNewsEmail = $('#formNewsEmail').val();
+    var formNewsReason = $('#formNewsReason').val();
+    var formNewsLink = $('#formNewsLink').val();
+
+    var data = {
+      date: formNewsDate,
+      platform: formNewsPlatform,
+      name: formNewsName,
+      email: formNewsEmail,
+      reason: formNewsReason,
+      link: formNewsLink,
+      uid: userInfo.uid
+    }
+    listRef.push(data);
+
+    $('input[type=text]').val('')
+    location.reload();
+  }
+
+
+})();
+</script>
+<script>
+</script>
+</body>
+</html>
